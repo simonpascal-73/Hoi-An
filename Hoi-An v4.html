@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guide Complet - Hoi An</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"/>
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    overflow: hidden;
+  }
+
+  #map {
+    width: 100vw;
+    height: 100vh;
+  }
+
+  .map-navigation {
+    position: absolute;
+    top: 10px;
+    left: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    padding: 8px;
+    border-radius: 0 0 12px 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .map-nav-header {
+    display: none;
+  }
+
+  .map-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 24px;
+    transition: all 0.2s ease;
+    text-align: center;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .map-button:active {
+    transform: scale(0.95);
+  }
+
+  .map-button.active {
+    background: #2563eb;
+    border-color: #2563eb;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+  }
+
+  .category-filters {
+    position: absolute;
+    top: 76px;
+    left: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(10px);
+    padding: 12px 16px;
+    border-radius: 0 0 20px 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    z-index: 999;
+    max-height: 40vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    transition: all 0.3s ease;
+  }
+
+  .category-filters::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .category-filters::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .category-filters::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 2px;
+  }
+
+  .filter-header {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #1a1a1a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e5e7eb;
+  }
+
+  .filter-header.hidden {
+    display: none;
+  }
+
+  .category-filters.empty {
+    display: none;
+  }
+
+  .category-group {
+    margin-bottom: 8px;
+  }
+
+  .filter-item {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    margin-bottom: 4px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 48px;
+  }
+
+  .filter-item:active {
+    background: rgba(0, 0, 0, 0.08);
+    transform: scale(0.98);
+  }
+
+  .filter-item.category-header {
+    font-weight: 600;
+    background: rgba(0, 0, 0, 0.03);
+    margin-bottom: 6px;
+    border-radius: 12px;
+  }
+
+  .filter-item.category-header:active {
+    background: rgba(0, 0, 0, 0.08);
+  }
+
+  .subcategory-list {
+    padding-left: 20px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+  }
+
+  .subcategory-list.expanded {
+    max-height: 2000px;
+  }
+
+  .beach-info {
+    padding: 10px 12px;
+    font-size: 14px;
+    color: #666;
+    font-style: italic;
+    margin-bottom: 6px;
+    border-left: 3px solid rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  .beach-info:active {
+    background: rgba(0, 0, 0, 0.05);
+  }
+
+  .subcategory-item {
+    padding: 10px 12px;
+    font-size: 15px;
+    color: #555;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+    margin-bottom: 4px;
+    transition: all 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  .subcategory-item:active {
+    background: rgba(0, 0, 0, 0.08);
+    border-left-color: rgba(0, 0, 0, 0.3);
+  }
+
+  .subcategory-item.selected {
+    background: rgba(37, 99, 235, 0.1);
+    border-left-color: #2563eb;
+    color: #2563eb;
+    font-weight: 500;
+  }
+
+  .filter-item input[type="checkbox"] {
+    width: 24px;
+    height: 24px;
+    margin-right: 12px;
+    cursor: pointer;
+    accent-color: #2563eb;
+    flex-shrink: 0;
+  }
+
+  .filter-label {
+    font-size: 16px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-height: 24px;
+  }
+
+  .filter-badge {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    margin-right: 4px;
+    flex-shrink: 0;
+  }
+
+  .count-badge {
+    background: rgba(0, 0, 0, 0.08);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #666;
+    flex-shrink: 0;
+  }
+
+  .expand-icon {
+    margin-left: auto;
+    transition: transform 0.3s ease;
+    font-size: 14px;
+    color: #666;
+    padding: 4px;
+    flex-shrink: 0;
+  }
+
+  .expand-icon.expanded {
+    transform: rotate(180deg);
+  }
+
+  .leaflet-popup-content-wrapper {
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  }
+
+  .leaflet-popup-content {
+    margin: 16px;
+    font-family: inherit;
+  }
+
+  .popup-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 8px;
+    line-height: 1.4;
+  }
+
+  .popup-address {
+    font-size: 14px;
+    color: #666;
+    line-height: 1.5;
+  }
+
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    25% { transform: translateY(-15px); }
+    50% { transform: translateY(-8px); }
+    75% { transform: translateY(-12px); }
+  }
+
+  .marker-bounce {
+    animation: bounce 0.6s ease-in-out;
+  }
+
+  .home-marker {
+    background: transparent;
+    border: none;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.05); }
+  }
+
+  .circle-pulse {
+    animation: pulse 1s ease-in-out;
+  }
+
+  @media (max-width: 768px) {
+    .map-navigation {
+      top: 0;
+      left: 0;
+      right: 0;
+      border-radius: 0 0 12px 12px;
+    }
+
+    .category-filters {
+      top: 76px;
+      left: 0;
+      right: 0;
+      max-height: calc(100vh - 86px);
+    }
+
+    .filter-header {
+      font-size: 18px;
+    }
+
+    .filter-label {
+      font-size: 16px;
+    }
+
+    .subcategory-item {
+      font-size: 15px;
+    }
+  }
+
+  @media (min-width: 769px) {
+    .map-navigation {
+      top: 20px;
+      right: 20px;
+      flex-direction: row;
+      padding: 12px;
+      gap: 8px;
+    }
+
+    .map-nav-header {
+      display: block;
+      font-size: 16px;
+      font-weight: 600;
+      color: #1a1a1a;
+      padding-right: 12px;
+      border-right: 2px solid #e5e7eb;
+    }
+
+    .map-button {
+      width: auto;
+      padding: 10px 16px;
+      font-size: 14px;
+    }
+
+    .map-button:hover {
+      background: #f9fafb;
+      border-color: #2563eb;
+      transform: translateY(-2px);
+    }
+
+    .category-filters {
+      top: 20px;
+      left: 20px;
+      bottom: auto;
+      right: auto;
+      min-width: 280px;
+      max-width: 360px;
+      max-height: calc(100vh - 40px);
+      border-radius: 16px;
+    }
+
+    .filter-item:hover {
+      background: rgba(0, 0, 0, 0.04);
+      transform: translateX(4px);
+    }
+
+    .subcategory-item:hover {
+      background: rgba(0, 0, 0, 0.06);
+      border-left-color: rgba(0, 0, 0, 0.2);
+      transform: translateX(2px);
+    }
+  }
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div class="map-navigation">
+  <div class="map-nav-header">Cartes</div>
+  <button class="map-button active" data-map="home" title="Maison">&#127968;</button>
+  <button class="map-button" data-map="restaurants" title="Restaurants">&#127837;&#65039;</button>
+  <button class="map-button" data-map="shopping" title="Shopping">&#128717;&#65039;</button>
+  <button class="map-button" data-map="beaches" title="Plages">&#127958;&#65039;</button>
+  <button class="map-button" data-map="temples" title="Patrimoine">&#127963;&#65039;</button>
+  <button class="map-button" data-map="cham" title="Îles Cham">&#127965;&#65039;</button>
+</div>
+
+<div class="category-filters empty">
+  <div class="filter-header hidden" id="filterHeader"></div>
+  <div id="filters"></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+<script>
+const homeLat = 15.88017;
+const homeLon = 108.34883;
+
+const allData = {
+  restaurants: {
+    title: '🍽️ Restaurants',
+    center: [15.88, 108.33],
+    zoom: 13,
+    categories: {
+      restaurants: {
+        name: 'Restaurants',
+        color: '#ef4444',
+        icon: 'red',
+        data: [
+          {name: "Morning Glory Original", address: "106 Nguyễn Thái Học, Hoi An", lat: 15.8766, lon: 108.3276},
+          {name: "Sea Shell by Nu Eatery", address: "10 Nguyễn Thị Minh Khai, Hoi An", lat: 15.8773, lon: 108.3245},
+          {name: "Hoa Hien", address: "98 Nguyễn Duy Hiệu, Hoi An", lat: 15.8768, lon: 108.3225},
+          {name: "Baby Mustard", address: "11 Trần Quang Khải, Hoi An", lat: 15.9012, lon: 108.3364},
+          {name: "Ixora Café & Dining", address: "207 Lạc Long Quân, Cẩm An, Hoi An", lat: 15.9026, lon: 108.3533},
+          {name: "Madame Hien Restaurant", address: "02 Nguyễn Thái Học, Hoi An", lat: 15.8768, lon: 108.3311},
+          {name: "Nu Eatery", address: "10A Nguyễn Thị Minh Khai, Hoi An", lat: 15.8773, lon: 108.3255},
+          {name: "Restaurant Nhà Hàng Sông Thu", address: "68 Trần Quang Khải, Hoi An", lat: 15.8771, lon: 108.3415},
+          {name: "Le Cabanon", address: "34 Trần Cao Văn, Hoi An", lat: 15.8775, lon: 108.3241},
+          {name: "Mix Restaurant", address: "10 Phan Châu Trinh, Hoi An", lat: 15.8774, lon: 108.3284},
+          {name: "Ganesh", address: "1 Phan Bội Châu, Hoi An", lat: 15.8798, lon: 108.3269},
+          {name: "Good Morning Vietnam", address: "68 Trần Quang Khải, Hoi An", lat: 15.8791, lon: 108.3286},
+          {name: "Hi Restaurant", address: "10 Nguyễn Thị Minh Khai, Hoi An", lat: 15.8753, lon: 108.3282},
+          {name: "Restaurant JAN", address: "242B Lê Thánh Tông, Hoi An", lat: 15.8828, lon: 108.3506},
+          {name: "Café SOLO", address: "468 Cửa Đại, Cẩm Châu, Hoi An", lat: 15.8806, lon: 108.3417},
+          {name: "The Lighthouse", address: "40 Trần Cao Văn, Hoi An", lat: 15.8776, lon: 108.3240},
+          {name: "Cargo Club", address: "107-109 Nguyễn Thái Học, Hoi An", lat: 15.8778, lon: 108.3274},
+          {name: "Reaching Out Tea House", address: "131 Trần Phú, Hoi An", lat: 15.8773, lon: 108.3280},
+          {name: "White Marble", address: "96 Bach Dang, Hoi An", lat: 15.8786, lon: 108.3252},
+          {name: "Maison Mận", address: "145 Trần Phú, Hoi An", lat: 15.8771, lon: 108.3274}
+        ]
+      },
+      rooftops: {
+        name: 'Rooftops',
+        color: '#f59e0b',
+        icon: 'yellow',
+        data: [
+          {name: "Faifo Coffee", address: "130 Tran Phu, Hoi An", lat: 15.8772, lon: 108.3281},
+          {name: "Me Hoi An (The Chef)", address: "166 Tran Phu, Hoi An", lat: 15.8773, lon: 108.3269},
+          {name: "Memories Brunch & Café", address: "30 Nguyen Thai Hoc, Hoi An", lat: 15.8769, lon: 108.3302},
+          {name: "92 Station Restaurant & Café", address: "92 Tran Phu, Hoi An", lat: 15.8774, lon: 108.3293},
+          {name: "The Deck Hoi An", address: "39 Dao Duy Tu, Cam Pho, Hoi An", lat: 15.8770, lon: 108.3198},
+          {name: "LaQue Restaurant & Coffee", address: "100 Tran Phu, Hoi An", lat: 15.8773, lon: 108.3290},
+          {name: "Hoi An Roastery", address: "135 Trần Phú, Hoi An", lat: 15.8772, lon: 108.3278}
+        ]
+      },
+      cafes: {
+        name: 'Cafés',
+        color: '#3b82f6',
+        icon: 'blue',
+        data: [
+          {name: "Roving Chillhouse", address: "Nguyen Trai Thanh Tay, Hoi An", lat: 15.8927, lon: 108.3521},
+          {name: "Nghé Rice Paddy Café", address: "K32 Le Thanh Tong, Hoi An", lat: 15.8978, lon: 108.3451},
+          {name: "Xom Chieu Coffee", address: "55 Le Thanh Tong, Cam Son, Hoi An", lat: 15.8940, lon: 108.3466},
+          {name: "Old Brick Kiln Cafe", address: "San van dong thon, Vinh Nam, Duy Xuyen", lat: 15.8361, lon: 108.3160},
+          {name: "Chillax Eatery & Hangout", address: "Nguyen Trai, Hoi An", lat: 15.8910, lon: 108.3519},
+          {name: "Mia Coffee", address: "26 Phan Bội Châu, Hoi An", lat: 15.8792, lon: 108.3268},
+          {name: "Cocobox", address: "126 Trần Phú, Hoi An", lat: 15.8773, lon: 108.3283}
+        ]
+      },
+      banhmi: {
+        name: 'Bánh Mì',
+        color: '#f97316',
+        icon: 'orange',
+        data: [
+          {name: "Banh Mi Phuong", address: "2B Phan Chu Trinh, Hoi An", lat: 15.8784, lon: 108.3320},
+          {name: "Madam Khanh - Banh Mi Queen", address: "115 Tran Cao Van, Hoi An", lat: 15.8807, lon: 108.3279},
+          {name: "Banh Mi Mr Hieu", address: "644 Hai Ba Trung, Hoi An", lat: 15.8821, lon: 108.3252},
+          {name: "Phi Banh Mi", address: "Cam Pho ward, Hoi An", lat: 15.8821, lon: 108.3267},
+          {name: "Banh Mi Lanh", address: "430 Cua Dai, Hoi An", lat: 15.8811, lon: 108.3438},
+          {name: "Banh Mi Chay", address: "Phan Chu Trinh & Nguyen Hue", lat: 15.8786, lon: 108.3313}
+        ]
+      },
+      streetfood: {
+        name: 'Street Food',
+        color: '#a855f7',
+        icon: 'violet',
+        data: [
+          {name: "Mì Quảng Ong Hai", address: "6A Truong Minh Luong, Hoi An", lat: 15.8801, lon: 108.3311},
+          {name: "Mì Quảng Di Hat", address: "4 rue Phan Chau Trinh, Hoi An", lat: 15.8817, lon: 108.32986},
+          {name: "Mì Quảng Ba Minh", address: "Số 61 đường 18/8, Phường Minh An, Hoi An", lat: 15.8749, lon: 108.3207},
+          {name: "Cơm Gà Ba Buoi", address: "26 rue Phan Chau Trinh, Hoi An", lat: 15.8786, lon: 108.3303},
+          {name: "Cơm Gà Ba Nga", address: "8 rue Phan Chau Trinh, Hoi An", lat: 15.8783, lon: 108.3315},
+          {name: "Bánh Bao Bánh Vạc", address: "106 Nguyen Thai Hoc, Hoi An", lat: 15.8779, lon: 108.3276},
+          {name: "Bánh Xèo Quang Gieng Ba Le", address: "45/51 rue Tran Hung Dao, Hoi An", lat: 15.8789, lon: 108.3300},
+          {name: "Bánh Xèo Hai Dao", address: "160 rue Ly Thai To, Hoi An", lat: 15.8873, lon: 108.3323}
+        ]
+      },
+      caolau: {
+        name: 'Cao Lầu',
+        color: '#22c55e',
+        icon: 'green',
+        data: [
+          {name: "Cao Lầu Ba Le", address: "45/51 Trần Hưng Đạo, Hoi An", lat: 15.8798, lon: 108.3293},
+          {name: "Cao Lầu Di Hat", address: "69 Phan Châu Trinh, Hoi An", lat: 15.8795, lon: 108.3270},
+          {name: "Morning Glory Restaurant", address: "106 Nguyễn Thái Học, Hoi An", lat: 15.8779, lon: 108.3276},
+          {name: "Cao Lầu Thanh", address: "24 Thái Phiên, Hoi An", lat: 15.8805, lon: 108.3284},
+          {name: "Cao Lầu Khong Gian Xanh", address: "687 Hai Bà Trưng, Hoi An", lat: 15.8852, lon: 108.3287},
+          {name: "Cao Lầu Trung", address: "22 Nguyễn Thái Học, Hoi An", lat: 15.8780, lon: 108.3275},
+          {name: "Cao Lầu Faifo Café", address: "130 Trần Phú, Hoi An", lat: 15.8778, lon: 108.3269}
+        ]
+      }
+    }
+  },
+  shopping: {
+    title: '🛍️ Shopping',
+    center: [15.88, 108.33],
+    zoom: 13,
+    categories: {
+      leather: {
+        name: 'Cuir',
+        color: '#FF69B4',
+        icon: 'pink',
+        data: [
+          {name: "Friendly Bag", address: "Quartier français colonial, Hoi An", lat: 15.8771, lon: 108.3337},
+          {name: "Atelier Hoi An", address: "123 Rue Artisanale, Hoi An", lat: 15.8795, lon: 108.3275}
+        ]
+      },
+      silk: {
+        name: 'Soie',
+        color: '#FFA500',
+        icon: 'orange',
+        data: [
+          {name: "Le Village de la Soie", address: "Hoi An", lat: 15.8805, lon: 108.3295},
+          {name: "Silk Boutique", address: "Rue principale, Hoi An", lat: 15.8798, lon: 108.3286},
+          {name: "Cocoon - Echarppe en soie", address: "128 Tran Quy Cap, Hoi An", lat: 15.8774, lon: 108.3281}
+        ]
+      },
+      shoes: {
+        name: 'Chaussures',
+        color: '#8A2BE2',
+        icon: 'violet',
+        data: [
+          {name: "Friendly Shoe Shop 1", address: "18 rue Tran Phu, Hoi An", lat: 15.8779, lon: 108.3316},
+          {name: "Friendly Shoe Shop 2", address: "15b rue Hoang Dieu, Hoi An", lat: 15.8779, lon: 108.3327},
+          {name: "Chong Chong Gio", address: "351 Nguyễn Duy Hiệu, Cẩm Châu, Hoi An", lat: 15.8779, lon: 108.3328}
+        ]
+      },
+      tailor: {
+        name: 'Tailleurs',
+        color: '#22c55e',
+        icon: 'green',
+        data: [
+          {name: "A Dong Silk 1", address: "38-40-42 Lê Lợi, Hoi An", lat: 15.8782, lon: 108.3286},
+          {name: "A Dong Silk 2", address: "62 Trần Hưng Đạo, Phường Minh An, Hoi An", lat: 15.8803, lon: 108.3270},
+          {name: "Lana Tailor", address: "90 Lê Lợi, Hoi An", lat: 15.8768, lon: 108.3285},
+          {name: "Vêtements METISEKO", address: "140–142 Tran Phu, Hoi An", lat: 15.8773, lon: 108.3275}
+        ]
+      },
+      lantern: {
+        name: 'Lanternes',
+        color: '#FFD700',
+        icon: 'yellow',
+        data: [
+          {name: "Lanternes Thuy Tam", address: "84 rue Tran Phu, Hoi An", lat: 15.8772, lon: 108.3294},
+          {name: "Lanternes Cao Lâu Ong Canh", address: "65 rue Tran Phu, Hoi An", lat: 15.8771, lon: 108.3295}
+        ]
+      }
+    }
+  },
+  beaches: {
+    title: '🏖️ Plages',
+    center: [15.910, 108.340],
+    zoom: 13,
+    beachColors: {
+      "An Bang Beach": "#FF7F50",
+      "Cua Dai Beach": "#00BFFF",
+      "Tan Thanh Beach": "#32CD32",
+      "Hidden Beach": "#8A2BE2",
+      "Ha My Beach": "#FF6347"
+    },
+    categories: {
+      anbang: {
+        name: 'An Bang Beach',
+        color: '#FF7F50',
+        icon: 'red',
+        beach: {
+          name: "Tan Thanh Beach",
+          address: "Cam An, Hoi An",
+          lat: 15.9085,
+          lon: 108.3494,
+          radius: 200
+        },
+        restaurants: [
+          {name: "Esco Beach Hoi An", address: "Tan Thanh Beach, Cam An, Hoi An", lat: 15.9082, lon: 108.3484},
+          {name: "Sound of Silence", address: "Tan Thanh Beach, Cam An, Hoi An", lat: 15.9087, lon: 108.3474}
+        ]
+      },
+      hiddenbeach: {
+        name: 'Hidden Beach',
+        color: '#8A2BE2',
+        icon: 'violet',
+        beach: {
+          name: "Hidden Beach",
+          address: "Entre An Bang et Cua Dai, Cam An, Hoi An",
+          lat: 15.9061,
+          lon: 108.3532,
+          radius: 200
+        },
+        restaurants: [
+          {name: "Hidden Beach Restaurant", address: "Hidden Beach, Cam An, Hoi An", lat: 15.9060, lon: 108.3527},
+          {name: "Wild Beach Restaurant", address: "Hidden Beach, Cam An, Hoi An", lat: 15.9056, lon: 108.3524},
+          {name: "Sun Beach Restaurant", address: "Hidden Beach, Cam An, Hoi An", lat: 15.9057, lon: 108.3527},
+          {name: "NEO Fisherman's Restaurant & Beach Lounge", address: "Hidden Beach, Cam An, Hoi An", lat: 15.9058, lon: 108.3525}
+        ]
+      },
+      hamy: {
+        name: 'Ha My Beach',
+        color: '#FF6347',
+        icon: 'orange',
+        beach: {
+          name: "Ha My Beach",
+          address: "Cam An, Hoi An",
+          lat: 15.9280,
+          lon: 108.3222,
+          radius: 200
+        },
+        restaurants: [
+          {name: "Papa Shark Beach Restaurant", address: "Ha My Beach, Cam An, Hoi An", lat: 15.9273, lon: 108.3217}
+        ]
+      }
+    }
+  },
+  temples: {
+    title: '🏛️ Patrimoine',
+    center: [15.8775, 108.3280],
+    zoom: 15,
+    categories: {
+      temples: {
+        name: 'Temples',
+        color: '#ef4444',
+        icon: 'red',
+        data: [
+          {name: "Temple Quan Công", address: "Rue Trần Phú, Cam Pho", lat: 15.8772, lon: 108.3281}
+        ]
+      },
+      pagodes: {
+        name: 'Pagodes',
+        color: '#f97316',
+        icon: 'orange',
+        data: [
+          {name: "Pagode Phap Bao", address: "Rue Trần Phú, Cam Pho", lat: 15.8769, lon: 108.3302}
+        ]
+      },
+      maisons: {
+        name: 'Maisons Anciennes',
+        color: '#22c55e',
+        icon: 'green',
+        data: [
+          {name: "Maison de Duc An", address: "Rue Trần Phú", lat: 15.8770, lon: 108.3290},
+          {name: "Maison de Tan Ky", address: "Rue Nguyễn Thái Học", lat: 15.8773, lon: 108.3285},
+          {name: "Maison de Phung Hung", address: "Rue Nguyễn Thái Học", lat: 15.8774, lon: 108.3289},
+          {name: "Maison de Quan Thang", address: "Rue Nguyễn Thái Học", lat: 15.8775, lon: 108.3292},
+          {name: "Chapelle de la famille Nguyen Tuong", address: "Rue Phan Chu Trinh", lat: 15.8780, lon: 108.3300}
+        ]
+      },
+      salles: {
+        name: "Salles d'assemblée",
+        color: '#3b82f6',
+        icon: 'blue',
+        data: [
+          {name: "Maison communale de Cam Pho", address: "Rue Trần Phú", lat: 15.8771, lon: 108.3275},
+          {name: "Maison communale de Minh Huong", address: "Rue Phan Chu Trinh", lat: 15.8782, lon: 108.3295},
+          {name: "Salle d'assemblée de Quang Trieu (Cantonais)", address: "Rue Trần Phú", lat: 15.8773, lon: 108.3280},
+          {name: "Salle de Phuc Kien / Fukian / Fujian", address: "Rue Trần Phú", lat: 15.8774, lon: 108.3283},
+          {name: "Salle d'assemblée Trieu Chau (Chaozhou)", address: "Rue Trần Phú", lat: 15.8775, lon: 108.3285},
+          {name: "Salle d'assemblée de Hai Nam", address: "Rue Trần Phú", lat: 15.8776, lon: 108.3288}
+        ]
+      }
+    }
+  },
+  cham: {
+    title: '🏝️ Îles Cham',
+    center: [15.955, 108.515],
+    zoom: 13,
+    beachColors: {
+      "Bãi Ông": "#1E90FF",
+      "Bãi Làng": "#FF6347",
+      "Bãi Hương": "#32CD32",
+      "Bãi Xép": "#8A2BE2"
+    },
+    categories: {
+      beaches: {
+        name: 'Plages',
+        color: '#3b82f6',
+        icon: 'blue',
+        data: [
+          {name: "Bãi Ông", address: "Îles Cham", lat: 15.9604, lon: 108.4981, radius: 400, beachColor: "#1E90FF"},
+          {name: "Bãi Làng", address: "Village principal, Îles Cham", lat: 15.9551, lon: 108.5074, radius: 350, beachColor: "#FF6347"},
+          {name: "Bãi Hương", address: "Îles Cham", lat: 15.9313, lon: 108.5282, radius: 350, beachColor: "#32CD32"},
+          {name: "Bãi Xép", address: "Îles Cham", lat: 15.9459, lon: 108.5087, radius: 300, beachColor: "#8A2BE2"}
+        ]
+      },
+      restaurants: {
+        name: 'Restaurants',
+        color: '#ef4444',
+        icon: 'red',
+        data: [
+          {name: "Dan Tri Restaurant", address: "Tan Hiep, Cham Island", lat: 15.9573, lon: 108.5069, beach: "Bãi Ông"},
+          {name: "Nộm Restaurant", address: "Tan Hiep, Cham Island", lat: 15.9571, lon: 108.5070, beach: "Bãi Ông"},
+          {name: "Chams Corner Lookout", address: "Tan Hiep, Cham Island", lat: 15.9571, lon: 108.5070, beach: "Bãi Ông"},
+          {name: "Dan Tri", address: "Proche Bãi Làng", lat: 15.9573, lon: 108.50691, beach: "Bãi Làng"},
+          {name: "Trúc Lương Restaurant - Cocktail - Coffee", address: "Tổ 1 Thôn, Bãi Hương", lat: 15.9326, lon: 108.5271, beach: "Bãi Làng"},
+          {name: "Tony Seaview Restaurant", address: "WGJG+XWQ, Bãi Hương", lat: 15.9325, lon: 108.5273, beach: "Bãi Làng"},
+          {name: "Cham Eco Restaurant & Bar", address: "Cảng du lịch, Hội An", lat: 15.9580, lon: 108.5046, beach: "Bãi Làng"},
+          {name: "RẬY ỐNG BÀNG coffee and food", address: "WGV6+JW, Cham Islands", lat: 15.9440, lon: 108.5123, beach: "Bãi Làng"}
+        ]
+      },
+      homestays: {
+        name: 'Homestays',
+        color: '#22c55e',
+        icon: 'green',
+        data: [
+          {name: "Homestay de Tam Hien", address: "Plage de Bai Ong, île de Cham", lat: 15.9625, lon: 108.5023, beach: "Bãi Ông"},
+          {name: "Khu vườn Khỉ (Monkeyland homestay)", address: "Bai Lang, île de Cham", lat: 15.9581, lon: 108.5068, beach: "Bãi Làng"},
+          {name: "Cham Island Homestay - Luu Ly Homestay", address: "Bai Lang, île de Cham", lat: 15.9572, lon: 108.5072, beach: "Bãi Làng"},
+          {name: "Island Smiles Homestay", address: "Bai Lang, île de Cham", lat: 15.9328, lon: 108.5274, beach: "Bãi Làng"},
+          {name: "Homestay Cù Lao Chăm - Hạnh Ly Homestay", address: "Bai Lang, île de Cham", lat: 15.9327, lon: 108.5271, beach: "Bãi Làng"},
+          {name: "Hùng Cúc homestay", address: "Đường Quảng Thịnh 6, Tân Hiệp, Vietnam", lat: 15.9604, lon: 108.5019, beach: "Bãi Làng"},
+          {name: "Ananda Home", address: "Bai Ong, île de Cham", lat: 15.9609, lon: 108.5048, beach: "Bãi Làng"},
+          {name: "Thuan Thanh Homestay", address: "Bai Lang hamlet, Tan Hiep, Îles Cham", lat: 15.9576, lon: 108.5066, beach: "Bãi Làng"},
+          {name: "Nhà Waratah Homestay and Restaurant", address: "Village principal, Îles Cham", lat: 15.9589, lon: 108.5071, beach: "Bãi Làng"},
+          {name: "Trang Vu Homestay Cu Lao Cham", address: "Village principal, Îles Cham", lat: 15.960, lon: 108.510, beach: "Bãi Làng"},
+          {name: "Hiep Tung Homestay", address: "Bãi Hương, Tân Hiệp, Îles Cham", lat: 15.9328, lon: 108.5276, beach: "Bãi Làng"},
+          {name: "Tám Thơ homestay", address: "Village Bãi Hương, Îles Cham", lat: 15.9319, lon: 108.5281, beach: "Bãi Hương"}
+        ]
+      }
+    }
+  }
+};
+
+const map = L.map('map').setView([homeLat, homeLon], 15);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 18,
+  attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
+
+const homeIcon = L.divIcon({
+  html: `<div style="
+    font-size: 40px; 
+    text-align: center; 
+    line-height: 1; 
+    filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.5));
+    transform: translateY(-8px);
+  ">🏠</div>`,
+  className: 'home-marker',
+  iconSize: [40, 40],
+  iconAnchor: [20, 40],
+  popupAnchor: [0, -40]
+});
+
+const homeMarker = L.marker([homeLat, homeLon], { icon: homeIcon })
+  .bindPopup('<div class="popup-title">🏠 Ma Maison</div><div class="popup-address">Point de départ</div>')
+  .addTo(map)
+  .openPopup();
+
+const createIcon = (color) => L.icon({
+  iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-${color}.png`,
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.3/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+
+let currentMap = 'restaurants';
+let allLayers = {};
+let allMarkers = {};
+let beachCircles = {};
+let selectedItem = null;
+
+function getAddressLinks(address) {
+  const encoded = encodeURIComponent(address);
+  return `
+    <div style="margin-top:8px">
+      <a href="https://maps.apple.com/?q=${encoded}" target="_blank" rel="noopener">Ouvrir dans Plans</a><br>
+      <a href="https://www.google.com/maps/search/?api=1&query=${encoded}" target="_blank" rel="noopener">Ouvrir dans Google Maps</a>
+    </div>
+  `;
+}
+
+const createCategoryMarkers = (mapType, categoryKey, category) => {
+  const layer = L.layerGroup();
+  const markers = {};
+  
+  if (mapType === 'beaches') {
+    const beach = category.beach;
+    const beachColor = allData.beaches.beachColors[beach.name];
+    const circle = L.circle([beach.lat, beach.lon], {
+      color: beachColor,
+      fillColor: beachColor,
+      fillOpacity: 0.3,
+      radius: beach.radius
+    }).bindPopup(`
+      <div class="popup-title">🏖️ ${beach.name}</div>
+      <div class="popup-address">${beach.address}</div>
+      ${getAddressLinks(beach.address)}
+    `);
+    circle.addTo(layer);
+    beachCircles[categoryKey] = circle;
+    
+    category.restaurants.forEach((restaurant, index) => {
+      const icon = createIcon(category.icon);
+      const marker = L.marker([restaurant.lat, restaurant.lon], { icon })
+        .bindPopup(`
+          <div class="popup-title">${restaurant.name}</div>
+          <div class="popup-address">${restaurant.address}</div>
+          ${getAddressLinks(restaurant.address)}
+        `);
+      marker.addTo(layer);
+      markers[index] = { marker, place: restaurant, circle };
+    });
+  }
+  else if (mapType === 'cham' && categoryKey === 'beaches') {
+    category.data.forEach((beach, index) => {
+      const circle = L.circle([beach.lat, beach.lon], {
+        color: beach.beachColor,
+        fillColor: beach.beachColor,
+        fillOpacity: 0.2,
+        radius: beach.radius
+      }).bindPopup(`
+        <div class="popup-title">🏖️ ${beach.name}</div>
+        <div class="popup-address">${beach.address}</div>
+        ${getAddressLinks(beach.address)}
+      `);
+      circle.addTo(layer);
+      
+      const icon = createIcon(category.icon);
+      const marker = L.marker([beach.lat, beach.lon], { icon })
+        .bindPopup(`
+          <div class="popup-title">🏖️ ${beach.name}</div>
+          <div class="popup-address">${beach.address}</div>
+          ${getAddressLinks(beach.address)}
+        `);
+      marker.addTo(layer);
+      markers[index] = { marker, place: beach, circle };
+    });
+  }
+  else if (mapType === 'cham' && (categoryKey === 'restaurants' || categoryKey === 'homestays')) {
+    category.data.forEach((place, index) => {
+      const icon = createIcon(category.icon);
+      const marker = L.marker([place.lat, place.lon], { icon })
+        .bindPopup(`
+          <div class="popup-title">${place.name}</div>
+          <div class="popup-address">${place.address}</div>
+          ${getAddressLinks(place.address)}
+          <div class="popup-address" style="font-style: italic; margin-top: 4px; color: #999;">${place.beach}</div>
+        `);
+      marker.addTo(layer);
+      markers[index] = { marker, place };
+    });
+  }
+  else {
+    category.data.forEach((place, index) => {
+      const icon = createIcon(category.icon);
+      const marker = L.marker([place.lat, place.lon], { icon })
+        .bindPopup(`
+          <div class="popup-title">${place.name}</div>
+          <div class="popup-address">${place.address}</div>
+          ${getAddressLinks(place.address)}
+        `);
+      marker.addTo(layer);
+      markers[index] = { marker, place };
+    });
+  }
+  
+  return { layer, markers };
+};
+
+const initializeMap = (mapType) => {
+  if (!map.hasLayer(homeMarker)) {
+    homeMarker.addTo(map);
+  }
+  
+  Object.values(allLayers).forEach(layerObj => {
+    Object.values(layerObj).forEach(layer => {
+      if (map.hasLayer(layer)) {
+        map.removeLayer(layer);
+      }
+    });
+  });
+  
+  allLayers = {};
+  allMarkers = {};
+  beachCircles = {};
+  selectedItem = null;
+  
+  const mapData = allData[mapType];
+  allLayers[mapType] = {};
+  allMarkers[mapType] = {};
+  
+  Object.entries(mapData.categories).forEach(([key, category]) => {
+    const { layer, markers } = createCategoryMarkers(mapType, key, category);
+    allLayers[mapType][key] = layer;
+    allMarkers[mapType][key] = markers;
+    layer.addTo(map);
+  });
+  
+  map.setView(mapData.center, mapData.zoom);
+  
+  const filtersPanel = document.querySelector('.category-filters');
+  filtersPanel.classList.remove('empty');
+  
+  const filterHeader = document.getElementById('filterHeader');
+  filterHeader.classList.remove('hidden');
+  
+  updateFilters(mapType);
+};
+
+const showHomeView = () => {
+  Object.values(allLayers).forEach(layerObj => {
+    Object.values(layerObj).forEach(layer => {
+      if (map.hasLayer(layer)) {
+        map.removeLayer(layer);
+      }
+    });
+  });
+  
+  allLayers = {};
+  allMarkers = {};
+  beachCircles = {};
+  selectedItem = null;
+  
+  if (!map.hasLayer(homeMarker)) {
+    homeMarker.addTo(map);
+  }
+  
+  map.setView([homeLat, homeLon], 15);
+  
+  const filtersPanel = document.querySelector('.category-filters');
+  filtersPanel.classList.add('empty');
+  
+  const filterHeader = document.getElementById('filterHeader');
+  filterHeader.classList.add('hidden');
+  
+  document.getElementById('filters').innerHTML = '';
+};
+
+const updateFilters = (mapType) => {
+  const filtersContainer = document.getElementById('filters');
+  const filterHeader = document.getElementById('filterHeader');
+  
+  filtersContainer.innerHTML = '';
+  filterHeader.textContent = allData[mapType].title;
+  
+  const mapData = allData[mapType];
+  
+  Object.entries(mapData.categories).forEach(([key, category]) => {
+    const categoryGroup = document.createElement('div');
+    categoryGroup.className = 'category-group';
+    
+    const categoryHeader = document.createElement('div');
+    categoryHeader.className = 'filter-item category-header';
+    
+    const categoryCheckbox = document.createElement('input');
+    categoryCheckbox.type = 'checkbox';
+    categoryCheckbox.checked = true;
+    categoryCheckbox.id = `filter-${key}`;
+    
+    const categoryLabel = document.createElement('label');
+    categoryLabel.className = 'filter-label';
+    categoryLabel.htmlFor = `filter-${key}`;
+    
+    let itemCount;
+    if (mapType === 'beaches') {
+      itemCount = category.restaurants.length;
+    } else {
+      itemCount = category.data.length;
+    }
+    
+    categoryLabel.innerHTML = `
+      <span class="filter-badge" style="background: ${category.color}"></span>
+      ${category.name}
+      <span class="count-badge">${itemCount}</span>
+    `;
+    
+    const expandIcon = document.createElement('span');
+    expandIcon.className = 'expand-icon';
+    expandIcon.innerHTML = '▼';
+    
+    categoryHeader.appendChild(categoryCheckbox);
+    categoryHeader.appendChild(categoryLabel);
+    categoryHeader.appendChild(expandIcon);
+    
+    const subcategoryList = document.createElement('div');
+    subcategoryList.className = 'subcategory-list';
+    
+    if (mapType === 'beaches') {
+      const beachInfo = document.createElement('div');
+      beachInfo.className = 'beach-info';
+      beachInfo.textContent = `📍 ${category.beach.name}`;
+      beachInfo.addEventListener('click', () => {
+        selectBeach(key);
+      });
+      subcategoryList.appendChild(beachInfo);
+      
+      category.restaurants.forEach((restaurant, index) => {
+        const subcategoryItem = document.createElement('div');
+        subcategoryItem.className = 'subcategory-item';
+        subcategoryItem.textContent = restaurant.name;
+        subcategoryItem.addEventListener('click', () => {
+          selectPlace(mapType, key, index, subcategoryItem);
+        });
+        subcategoryList.appendChild(subcategoryItem);
+      });
+    }
+    else if (mapType === 'cham' && (key === 'restaurants' || key === 'homestays')) {
+      category.data.forEach((place, index) => {
+        const subcategoryItem = document.createElement('div');
+        subcategoryItem.className = 'subcategory-item';
+        subcategoryItem.innerHTML = `${place.name} <span style="font-size: 11px; color: #999; font-style: italic;">(${place.beach})</span>`;
+        subcategoryItem.addEventListener('click', () => {
+          selectPlace(mapType, key, index, subcategoryItem);
+        });
+        subcategoryList.appendChild(subcategoryItem);
+      });
+    }
+    else {
+      category.data.forEach((place, index) => {
+        const subcategoryItem = document.createElement('div');
+        subcategoryItem.className = 'subcategory-item';
+        subcategoryItem.textContent = place.name;
+        subcategoryItem.addEventListener('click', () => {
+          selectPlace(mapType, key, index, subcategoryItem);
+        });
+        subcategoryList.appendChild(subcategoryItem);
+      });
+    }
+    
+    categoryHeader.addEventListener('click', (e) => {
+      if (e.target === expandIcon || e.target.closest('.expand-icon')) {
+        subcategoryList.classList.toggle('expanded');
+        expandIcon.classList.toggle('expanded');
+      } else if (e.target !== categoryCheckbox) {
+        categoryCheckbox.checked = !categoryCheckbox.checked;
+        toggleLayer(mapType, key, categoryCheckbox.checked);
+      }
+    });
+    
+    categoryCheckbox.addEventListener('change', () => {
+      toggleLayer(mapType, key, categoryCheckbox.checked);
+    });
+    
+    categoryGroup.appendChild(categoryHeader);
+    categoryGroup.appendChild(subcategoryList);
+    filtersContainer.appendChild(categoryGroup);
+  });
+};
+
+const toggleLayer = (mapType, key, show) => {
+  const layer = allLayers[mapType][key];
+  if (show) {
+    layer.addTo(map);
+  } else {
+    map.removeLayer(layer);
+  }
+};
+
+const selectBeach = (key) => {
+  if (selectedItem) {
+    selectedItem.classList.remove('selected');
+  }
+  selectedItem = null;
+  
+  const category = allData.beaches.categories[key];
+  const beach = category.beach;
+  
+  map.flyTo([beach.lat, beach.lon], 15, { duration: 1 });
+  
+  const circle = beachCircles[key];
+  const circleElement = circle._path;
+  if (circleElement) {
+    circleElement.classList.remove('circle-pulse');
+    void circleElement.offsetWidth;
+    circleElement.classList.add('circle-pulse');
+    setTimeout(() => {
+      circleElement.classList.remove('circle-pulse');
+    }, 1000);
+  }
+  
+  setTimeout(() => {
+    circle.openPopup();
+  }, 500);
+};
+
+const selectPlace = (mapType, categoryKey, index, itemElement) => {
+  if (selectedItem) {
+    selectedItem.classList.remove('selected');
+  }
+  
+  selectedItem = itemElement;
+  itemElement.classList.add('selected');
+  
+  const markerData = allMarkers[mapType][categoryKey][index];
+  if (!markerData) return;
+  
+  const marker = markerData.marker;
+  const place = markerData.place;
+  
+  let zoomLevel = 16;
+  if (mapType === 'temples') zoomLevel = 17;
+  if (mapType === 'cham' && categoryKey === 'beaches') zoomLevel = 15;
+  
+  map.flyTo([place.lat, place.lon], zoomLevel, { duration: 1 });
+  
+  if (markerData.circle) {
+    const circleElement = markerData.circle._path;
+    if (circleElement) {
+      circleElement.classList.remove('circle-pulse');
+      void circleElement.offsetWidth;
+      circleElement.classList.add('circle-pulse');
+      setTimeout(() => {
+        circleElement.classList.remove('circle-pulse');
+      }, 1000);
+    }
+  }
+  
+  const markerElement = marker._icon;
+  if (markerElement) {
+    markerElement.classList.remove('marker-bounce');
+    void markerElement.offsetWidth;
+    markerElement.classList.add('marker-bounce');
+    setTimeout(() => {
+      markerElement.classList.remove('marker-bounce');
+    }, 600);
+  }
+  
+  setTimeout(() => {
+    marker.openPopup();
+  }, 500);
+};
+
+document.querySelectorAll('.map-button').forEach(button => {
+  button.addEventListener('click', () => {
+    const mapType = button.dataset.map;
+    
+    document.querySelectorAll('.map-button').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    button.classList.add('active');
+    
+    if (mapType === 'home') {
+      showHomeView();
+    } else {
+      currentMap = mapType;
+      initializeMap(mapType);
+    }
+  });
+});
+
+showHomeView();
+</script>
+</body>
+</html>An Bang Beach",
+          address: "Cam An, Hoi An",
+          lat: 15.9140,
+          lon: 108.3407,
+          radius: 200
+        },
+        restaurants: [
+          {name: "The DeckHouse An Bang Beach", address: "An Bang Beach, Cam An, Hoi An", lat: 15.9143, lon: 108.3395},
+          {name: "Soul Kitchen", address: "An Bang Beach, Cam An, Hoi An", lat: 15.9142, lon: 108.3398},
+          {name: "The Fisherman", address: "An Bang Beach, Cam An, Hoi An", lat: 15.9122, lon: 108.3416}
+        ]
+      },
+      cuadai: {
+        name: 'Cua Dai Beach',
+        color: '#00BFFF',
+        icon: 'blue',
+        beach: {
+          name: "Cua Dai Beach",
+          address: "Cam An, Hoi An",
+          lat: 15.8980,
+          lon: 108.3662,
+          radius: 200
+        },
+        restaurants: [
+          {name: "Hoi An Beach Resort", address: "Cua Dai Beach, Cam An, Hoi An", lat: 15.8965, lon: 108.3672}
+        ]
+      },
+      tanthanh: {
+        name: 'Tan Thanh Beach',
+        color: '#32CD32',
+        icon: 'green',
+        beach: {
+          name: "
