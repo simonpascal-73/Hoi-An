@@ -1490,6 +1490,7 @@ const showAllMaps = () => {
 };
 
 // Afficher toutes les cartes au démarrage
+
 showAllMaps();
 </script>
 </body>
